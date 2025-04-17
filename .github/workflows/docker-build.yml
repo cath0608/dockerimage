@@ -1,0 +1,49 @@
+name: Build and Deploy Docker Image
+
+on:
+  push:
+    branches:
+      - main  # Or your working branch
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: |
+          docker build -t my-python-app .
+
+      - name: Save Docker image as .tar file
+        run: |
+          docker save my-python-app -o my-python-app.tar
+
+      - name: Upload .tar file to GCP VM
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USERNAME }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          source: "my-python-app.tar"
+          target: "/home/${{ secrets.VM_USERNAME }}/"
+
+      - name: SSH into VM and run Docker container
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USERNAME }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            docker load -i my-python-app.tar
+            docker stop my-python-app || true
+            docker rm my-python-app || true
+            docker run -d --name my-python-app -p 80:80 my-python-app
+
+      - name: Show Docker images
+        run: docker images

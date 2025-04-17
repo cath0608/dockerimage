@@ -43,7 +43,7 @@ jobs:
             docker load -i my-python-app.tar
             docker stop my-python-app || true
             docker rm my-python-app || true
-            docker run -d --name my-python-app -p 80:80 my-python-app
+            docker run -d --name my-python-app -p 80:8000 my-python-app
 
       - name: Show Docker images
         run: docker images
